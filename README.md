@@ -83,3 +83,15 @@ fn main() {
 ```
 
 [dotenv]: https://github.com/bkeepers/dotenv
+
+
+Using CLI command
+-----------------
+
+You can also use `dotenv` as a CLI command that reads environment variables from `.env` file.
+
+For that you need to install `dotenv` with the following command
+
+```
+cargo install dotenv --bin dotenv --features=cli
+```
