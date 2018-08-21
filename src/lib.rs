@@ -55,7 +55,7 @@ pub fn var<K: AsRef<OsStr>>(key: K) -> Result<String> {
 /// The returned iterator contains a snapshot of the process's environment variables at the
 /// time of this invocation, modifications to environment variables afterwards will not be
 /// reflected in the returned iterator.
-/// 
+///
 /// Examples:
 ///
 /// ```no_run

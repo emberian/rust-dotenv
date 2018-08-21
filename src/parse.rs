@@ -4,7 +4,7 @@ use errors::*;
 // for readability's sake
 pub type ParsedLine = Result<Option<(String, String)>>;
 
-pub fn parse_line(line: &str) -> ParsedLine {
+pub fn parse_line(line: &str, line_number: i32) -> ParsedLine {
     lazy_static! {
       static ref LINE_REGEX: Regex = Regex::new(r#"(?x)
         ^(
@@ -25,13 +25,13 @@ pub fn parse_line(line: &str) -> ParsedLine {
 
     LINE_REGEX
         .captures(line)
-        .map_or(Err(Error::LineParse(line.into()).into()), |captures| {
+        .map_or(Err(Error::LineParse(line.into(), line_number).into()), |captures| {
             let key = named_string(&captures, "key");
             let value = named_string(&captures, "value");
 
             match (key, value) {
                 (Some(k), Some(v)) => {
-                    let parsed_value = try!(parse_value(&v));
+                    let parsed_value = try!(parse_value(&v, line_number));
 
                     Ok(Some((k, parsed_value)))
                 }
@@ -54,7 +54,7 @@ fn named_string(captures: &Captures, name: &str) -> Option<String> {
         .and_then(|v| Some(v.as_str().to_owned()))
 }
 
-fn parse_value(input: &str) -> Result<String> {
+fn parse_value(input: &str, line_number: i32) -> Result<String> {
     let mut strong_quote = false; // '
     let mut weak_quote = false; // "
     let mut escaped = false;
@@ -74,7 +74,7 @@ fn parse_value(input: &str) -> Result<String> {
             } else if c == '#' {
                 break;
             } else {
-                return Err(Error::LineParse(input.to_owned()));
+                return Err(Error::LineParse(input.to_owned(), line_number));
             }
         } else if strong_quote {
             if c == '\'' {
@@ -94,7 +94,7 @@ fn parse_value(input: &str) -> Result<String> {
                 //then there's \v \f bell hex... etc
                 match c {
                     '\\' | '"' | '$' => output.push(c),
-                    _ => return Err(Error::LineParse(input.to_owned())),
+                    _ => return Err(Error::LineParse(input.to_owned(), line_number)),
                 }
 
                 escaped = false;
@@ -108,7 +108,7 @@ fn parse_value(input: &str) -> Result<String> {
         } else if escaped {
             match c {
                 '\\' | '\'' | '"' | '$' | ' ' => output.push(c),
-                _ => return Err(Error::LineParse(input.to_owned())),
+                _ => return Err(Error::LineParse(input.to_owned(), line_number)),
             }
 
             escaped = false;
@@ -120,7 +120,7 @@ fn parse_value(input: &str) -> Result<String> {
             escaped = true;
         } else if c == '$' {
             //variable interpolation goes here later
-            return Err(Error::LineParse(input.to_owned()));
+            return Err(Error::LineParse(input.to_owned(), line_number));
         } else if c == ' ' || c == '\t' {
             expecting_end = true;
         } else {
@@ -130,7 +130,7 @@ fn parse_value(input: &str) -> Result<String> {
 
     //XXX also fail if escaped? or...
     if strong_quote || weak_quote {
-        Err(Error::LineParse(input.to_owned()).into())
+        Err(Error::LineParse(input.to_owned(), line_number))
     } else {
         Ok(output)
     }
@@ -152,9 +152,10 @@ KEY4='fo ur'
 KEY5="fi ve"
 KEY6=s\ ix
 KEY7=
-KEY8=     
+KEY8=
 KEY9=   # foo
 export   SHELL_LOVER=1
+KEY10 = "10"
 "#.as_bytes());
 
         let expected_iter = vec![
@@ -192,7 +193,7 @@ export   SHELL_LOVER=1
     #[test]
     fn test_parse_line_invalid() {
         let actual_iter = Iter::new(r#"
-  invalid    
+  invalid
 KEY =val
 KEY2= val
 very bacon = yes indeed
@@ -245,6 +246,30 @@ KEY5=h\8u
 
         for actual in actual_iter {
             assert!(actual.is_err());
+        }
+    }
+
+    #[test]
+    fn test_error_message_reporting_line() {
+        let actual_iter = Iter::new(r#"KEY=my uncool value
+KEY2=notcool
+KEY3=why
+KEY4=please stop
+"#.as_bytes());
+        let values = [
+            "'my uncool value'",
+            "'$notcool'",
+            "'why'",
+            "'please stop'",
+        ];
+
+        for (index, actual) in actual_iter.enumerate() {
+            let line_number = index + 1;
+
+            match actual {
+                Err(e) => assert_eq!(format!("Error parsing line {:?}: {}", line_number, values[index]), e.to_string()),
+                _ => assert!(true),
+            }
         }
     }
 }
