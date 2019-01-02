@@ -6,7 +6,7 @@ mod common;
 use std::collections::HashMap;
 use dotenv::*;
 
-use common::*;
+use crate::common::*;
 
 #[test]
 fn test_vars() {

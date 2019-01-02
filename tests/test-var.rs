@@ -5,7 +5,7 @@ mod common;
 
 use dotenv::*;
 
-use common::*;
+use crate::common::*;
 
 #[test]
 fn test_var() {
