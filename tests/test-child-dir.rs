@@ -6,7 +6,7 @@ mod common;
 use std::{env, fs};
 use dotenv::*;
 
-use common::*;
+use crate::common::*;
 
 #[test]
 fn test_child_dir() {

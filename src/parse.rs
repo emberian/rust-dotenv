@@ -1,5 +1,5 @@
 use regex::{Captures, Regex};
-use errors::*;
+use crate::errors::*;
 
 // for readability's sake
 pub type ParsedLine = Result<Option<(String, String)>>;
@@ -31,7 +31,7 @@ pub fn parse_line(line: &str, line_number: i32) -> ParsedLine {
 
             match (key, value) {
                 (Some(k), Some(v)) => {
-                    let parsed_value = try!(parse_value(&v, line_number));
+                    let parsed_value = r#try!(parse_value(&v, line_number));
 
                     Ok(Some((k, parsed_value)))
                 }
@@ -140,7 +140,7 @@ fn parse_value(input: &str, line_number: i32) -> Result<String> {
 mod test {
     use super::*;
 
-    use iter::Iter;
+    use crate::iter::Iter;
 
     #[test]
     fn test_parse_line_env() {

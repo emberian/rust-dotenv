@@ -6,7 +6,7 @@ mod common;
 use std::env;
 use dotenv::*;
 
-use common::*;
+use crate::common::*;
 
 #[test]
 fn test_default_location() {
